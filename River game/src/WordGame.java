@@ -1,7 +1,5 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.*;
 import java.util.List;
 
@@ -22,7 +20,7 @@ public class WordGame {
     );
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> createAndShowGUI());
+        SwingUtilities.invokeLater(WordGame::createAndShowGUI);
     }
 
     private static void createAndShowGUI() {
@@ -34,7 +32,7 @@ public class WordGame {
         // Create components
         JLabel label = new JLabel("Click a button to get a random word:", SwingConstants.CENTER);
         JButton riverButton = new JButton("Get Random River");
-        JButton reservoirButton = new JButton("Get Random Reservoir");
+        JButton reservoirButton = new JButton("Get Random Язовир");
         JLabel resultLabel = new JLabel("", SwingConstants.CENTER);
 
         // Set layout
@@ -45,20 +43,14 @@ public class WordGame {
         frame.add(resultLabel);
 
         // Add action listeners
-        riverButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String randomRiver = RIVERS.get(new Random().nextInt(RIVERS.size()));
-                resultLabel.setText("Random River: " + randomRiver);
-            }
+        riverButton.addActionListener(_ -> {
+            String randomRiver = RIVERS.get(new Random().nextInt(RIVERS.size()));
+            resultLabel.setText("Random River: " + randomRiver);
         });
 
-        reservoirButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String randomReservoir = RESERVOIRS.get(new Random().nextInt(RESERVOIRS.size()));
-                resultLabel.setText("Random Reservoir: " + randomReservoir);
-            }
+        reservoirButton.addActionListener(_ -> {
+            String randomReservoir = RESERVOIRS.get(new Random().nextInt(RESERVOIRS.size()));
+            resultLabel.setText("Random Reservoir: " + randomReservoir);
         });
 
         // Show the frame
