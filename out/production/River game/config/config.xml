@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch4jConfig>
+  <dontWrapJar>false</dontWrapJar>
+  <headerType>gui</headerType>
+  <jar>/home/zdravko/IdeaProjects/River-game/River game/src/WordGame.jar</jar>
+  <outfile>/home/zdravko/IdeaProjects/River-game/River game/src/Game.exe</outfile>
+  <errTitle>PLs install java</errTitle>
+  <cmdLine></cmdLine>
+  <chdir>.</chdir>
+  <priority>normal</priority>
+  <downloadUrl>https://www.java.com/download/</downloadUrl>
+  <supportUrl></supportUrl>
+  <stayAlive>false</stayAlive>
+  <restartOnCrash>false</restartOnCrash>
+  <manifest></manifest>
+  <icon>/home/zdravko/Downloads/river.png</icon>
+  <jre>
+    <path>%JAVA_HOME%;%PATH%</path>
+    <requiresJdk>true</requiresJdk>
+    <requires64Bit>true</requires64Bit>
+    <minVersion>1.8</minVersion>
+    <maxVersion></maxVersion>
+  </jre>
+</launch4jConfig>
