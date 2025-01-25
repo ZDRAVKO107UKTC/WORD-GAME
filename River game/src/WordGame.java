@@ -1,25 +1,15 @@
 import javax.swing.*;
 import java.awt.*;
-import java.util.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 public class WordGame {
 
-    private static final List<String> RIVERS = Arrays.asList(
-            "Лом", "Скът", "Цибрица", "Росица", "Огоста", "Вит", "Осъм",
-            "Янтра","Русенски Лом", "Провадийска","Камчия","Факийска",
-            "Ропотамо","Велека","Резовска","Арда","Въча","Тополница",
-            "Луда Яна","Стряма","Марица","Искър","Струма","Места","Тунджа",
-            "Чепеларска","Чепинска","Сазлийка"
-    );
-
-    private static final List<String> RESERVOIRS = Arrays.asList(
-            "яз. Кърджали", "яз. Студен кладенец", "яз. Ивайловград",
-            "яз. Доспат", "яз. Батак","яз. Александър Стамболийски",
-            "яз. Копринка", "яз. Жребчево", "яз. Искър",
-            "яз. Цонево", "яз. Огоста", "яз. Пчелина", "яз. Тича", "яз. Сопот"
-    );
-
+    private static final List<String> RIVERS = new ArrayList<>();
+    private static final List<String> RESERVOIRS = new ArrayList<>();
     private static final Random RANDOM = new Random();
 
     public static void main(String[] args) {
@@ -32,7 +22,7 @@ public class WordGame {
 
         JLabel label = new JLabel("Click a button to get a random word:", SwingConstants.CENTER);
         JButton riverButton = new JButton("Get Random River");
-        JButton reservoirButton = new JButton("Get Random Язовир");
+        JButton reservoirButton = new JButton("Get Random Reservoir");
         JButton crudButton = new JButton("Go to CRUD System");
         JLabel resultLabel = new JLabel("", SwingConstants.CENTER);
 
@@ -50,22 +40,36 @@ public class WordGame {
         mainPanel.add(buttonPanel, BorderLayout.CENTER);
         mainPanel.add(resultLabel, BorderLayout.SOUTH);
 
-        // Adding tooltips for better user insight
         riverButton.setToolTipText("Get a random river name");
         reservoirButton.setToolTipText("Get a random reservoir name");
         crudButton.setToolTipText("Open CRUD window");
 
         riverButton.addActionListener(e -> {
-            String randomRiver = RIVERS.get(RANDOM.nextInt(RIVERS.size()));
-            resultLabel.setText("Random River: " + randomRiver);
+            if (!RIVERS.isEmpty()) {
+                String randomRiver = RIVERS.get(RANDOM.nextInt(RIVERS.size()));
+                resultLabel.setText("Random River: " + randomRiver);
+            } else {
+                resultLabel.setText("No rivers available. Please add rivers in the CRUD system.");
+            }
         });
 
         reservoirButton.addActionListener(e -> {
-            String randomReservoir = RESERVOIRS.get(RANDOM.nextInt(RESERVOIRS.size()));
-            resultLabel.setText("Random Reservoir: " + randomReservoir);
+            if (!RESERVOIRS.isEmpty()) {
+                String randomReservoir = RESERVOIRS.get(RANDOM.nextInt(RESERVOIRS.size()));
+                resultLabel.setText("Random Reservoir: " + randomReservoir);
+            } else {
+                resultLabel.setText("No reservoirs available. Please add reservoirs in the CRUD system.");
+            }
         });
 
         crudButton.addActionListener(e -> openCRUDWindow());
+
+        frame.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                adjustFontSize(frame, label, resultLabel, riverButton, reservoirButton, crudButton);
+            }
+        });
 
         frame.add(mainPanel);
         frame.setSize(600, 400);
@@ -74,11 +78,42 @@ public class WordGame {
         frame.setVisible(true);
     }
 
+    private static void adjustFontSize(JFrame frame, JLabel label, JLabel resultLabel, JButton... buttons) {
+        int frameWidth = frame.getWidth();
+        int frameHeight = frame.getHeight();
+        int newFontSize = Math.min(frameWidth, frameHeight) / 20;
+
+        Font baseFont = new Font("Arial", Font.PLAIN, newFontSize);
+
+        label.setFont(baseFont);
+        resultLabel.setFont(baseFont);
+
+        for (JButton button : buttons) {
+            button.setFont(baseFont);
+        }
+    }
+
     private static void openCRUDWindow() {
         JFrame crudFrame = new JFrame("CRUD System");
         crudFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
-        DefaultListModel<String> listModel = new DefaultListModel<>();
+        DefaultListModel<String> riverModel = new DefaultListModel<>();
+        DefaultListModel<String> reservoirModel = new DefaultListModel<>();
+        RIVERS.forEach(riverModel::addElement);
+        RESERVOIRS.forEach(reservoirModel::addElement);
+
+        JTabbedPane tabbedPane = new JTabbedPane();
+        tabbedPane.addTab("Rivers", createCRUDPanel(riverModel, RIVERS));
+        tabbedPane.addTab("Reservoirs", createCRUDPanel(reservoirModel, RESERVOIRS));
+
+        crudFrame.add(tabbedPane);
+        crudFrame.setSize(400, 300);
+        crudFrame.setMinimumSize(new Dimension(300, 200));
+        crudFrame.setLocationRelativeTo(null);
+        crudFrame.setVisible(true);
+    }
+
+    private static JPanel createCRUDPanel(DefaultListModel<String> listModel, List<String> list) {
         JList<String> itemList = new JList<>(listModel);
         JTextField inputField = new JTextField();
 
@@ -90,16 +125,21 @@ public class WordGame {
             String text = inputField.getText().trim();
             if (!text.isEmpty()) {
                 listModel.addElement(text);
+                list.add(text);
                 inputField.setText("");
+                inputField.requestFocus();
+            } else {
+                JOptionPane.showMessageDialog(null, "Input cannot be empty!", "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
 
         deleteButton.addActionListener(e -> {
             int selectedIndex = itemList.getSelectedIndex();
-            if (selectedIndex != -1 && JOptionPane.showConfirmDialog(crudFrame,
-                    "Are you sure you want to delete this item?", "Confirm Delete",
-                    JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+            if (selectedIndex != -1) {
+                list.remove(listModel.get(selectedIndex));
                 listModel.remove(selectedIndex);
+            } else {
+                JOptionPane.showMessageDialog(null, "Please select an item to delete.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
 
@@ -107,26 +147,29 @@ public class WordGame {
             int selectedIndex = itemList.getSelectedIndex();
             String text = inputField.getText().trim();
             if (selectedIndex != -1 && !text.isEmpty()) {
+                list.set(list.indexOf(listModel.get(selectedIndex)), text);
                 listModel.set(selectedIndex, text);
                 inputField.setText("");
+                inputField.requestFocus();
+            } else {
+                JOptionPane.showMessageDialog(null, "Please select an item and provide valid input to update.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
 
         JPanel inputPanel = new JPanel(new BorderLayout(5, 5));
         inputPanel.add(inputField, BorderLayout.CENTER);
-        inputPanel.add(new JPanel(new GridLayout(1, 3, 5, 5)) {{
-            add(addButton);
-            add(deleteButton);
-            add(updateButton);
-        }}, BorderLayout.SOUTH);
 
-        crudFrame.setLayout(new BorderLayout(10, 10));
-        crudFrame.add(new JScrollPane(itemList), BorderLayout.CENTER);
-        crudFrame.add(inputPanel, BorderLayout.SOUTH);
+        JPanel buttonPanel = new JPanel(new GridLayout(1, 3, 5, 5));
+        buttonPanel.add(addButton);
+        buttonPanel.add(deleteButton);
+        buttonPanel.add(updateButton);
 
-        crudFrame.setSize(400, 300);
-        crudFrame.setMinimumSize(new Dimension(300, 200));
-        crudFrame.setLocationRelativeTo(null);
-        crudFrame.setVisible(true);
+        inputPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.add(new JScrollPane(itemList), BorderLayout.CENTER);
+        panel.add(inputPanel, BorderLayout.SOUTH);
+
+        return panel;
     }
 }
