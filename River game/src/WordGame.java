@@ -2,28 +2,31 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
 public class WordGame {
 
+    private static final String DATA_FILE = "wordgame_data.ser";
     private static final List<String> RIVERS = new ArrayList<>();
     private static final List<String> RESERVOIRS = new ArrayList<>();
     private static final Random RANDOM = new Random();
 
     public static void main(String[] args) {
+        loadData();
         SwingUtilities.invokeLater(WordGame::createAndShowGUI);
     }
 
     private static void createAndShowGUI() {
-        JFrame frame = new JFrame("Random Word Game");
+        JFrame frame = new JFrame("РЕКИ/ЯЗОВИРИ ИГРА");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        JLabel label = new JLabel("Click a button to get a random word:", SwingConstants.CENTER);
-        JButton riverButton = new JButton("Get Random River");
-        JButton reservoirButton = new JButton("Get Random Reservoir");
-        JButton crudButton = new JButton("Go to CRUD System");
+        JLabel label = new JLabel("Натиснете бутон за да получите дума:", SwingConstants.CENTER);
+        JButton riverButton = new JButton("Река");
+        JButton reservoirButton = new JButton("Язовир");
+        JButton crudButton = new JButton("Админ");
         JLabel resultLabel = new JLabel("", SwingConstants.CENTER);
 
         JPanel mainPanel = new JPanel();
@@ -40,25 +43,25 @@ public class WordGame {
         mainPanel.add(buttonPanel, BorderLayout.CENTER);
         mainPanel.add(resultLabel, BorderLayout.SOUTH);
 
-        riverButton.setToolTipText("Get a random river name");
-        reservoirButton.setToolTipText("Get a random reservoir name");
-        crudButton.setToolTipText("Open CRUD window");
+        riverButton.setToolTipText("Река");
+        reservoirButton.setToolTipText("Язовир");
+        crudButton.setToolTipText("Отвори Админ");
 
         riverButton.addActionListener(e -> {
             if (!RIVERS.isEmpty()) {
                 String randomRiver = RIVERS.get(RANDOM.nextInt(RIVERS.size()));
-                resultLabel.setText("Random River: " + randomRiver);
+                resultLabel.setText("Получена Река: " + randomRiver);
             } else {
-                resultLabel.setText("No rivers available. Please add rivers in the CRUD system.");
+                resultLabel.setText("Няма налични думи. Моля добавете реки през админ Менюто.");
             }
         });
 
         reservoirButton.addActionListener(e -> {
             if (!RESERVOIRS.isEmpty()) {
                 String randomReservoir = RESERVOIRS.get(RANDOM.nextInt(RESERVOIRS.size()));
-                resultLabel.setText("Random Reservoir: " + randomReservoir);
+                resultLabel.setText("Получен Язовир: " + randomReservoir);
             } else {
-                resultLabel.setText("No reservoirs available. Please add reservoirs in the CRUD system.");
+                resultLabel.setText("Няма налични думи. Моля добавете язовири през админ Менюто.");
             }
         });
 
@@ -68,6 +71,13 @@ public class WordGame {
             @Override
             public void componentResized(ComponentEvent e) {
                 adjustFontSize(frame, label, resultLabel, riverButton, reservoirButton, crudButton);
+            }
+        });
+
+        frame.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                saveData(); // Save data when the window is closing
             }
         });
 
@@ -94,7 +104,7 @@ public class WordGame {
     }
 
     private static void openCRUDWindow() {
-        JFrame crudFrame = new JFrame("CRUD System");
+        JFrame crudFrame = new JFrame("Админ система");
         crudFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
         DefaultListModel<String> riverModel = new DefaultListModel<>();
@@ -103,8 +113,8 @@ public class WordGame {
         RESERVOIRS.forEach(reservoirModel::addElement);
 
         JTabbedPane tabbedPane = new JTabbedPane();
-        tabbedPane.addTab("Rivers", createCRUDPanel(riverModel, RIVERS));
-        tabbedPane.addTab("Reservoirs", createCRUDPanel(reservoirModel, RESERVOIRS));
+        tabbedPane.addTab("Реки", createCRUDPanel(riverModel, RIVERS));
+        tabbedPane.addTab("Язовири", createCRUDPanel(reservoirModel, RESERVOIRS));
 
         crudFrame.add(tabbedPane);
         crudFrame.setSize(400, 300);
@@ -117,9 +127,9 @@ public class WordGame {
         JList<String> itemList = new JList<>(listModel);
         JTextField inputField = new JTextField();
 
-        JButton addButton = new JButton("Add");
-        JButton deleteButton = new JButton("Delete");
-        JButton updateButton = new JButton("Update");
+        JButton addButton = new JButton("Добави");
+        JButton deleteButton = new JButton("Изтрий");
+        JButton updateButton = new JButton("Обнови");
 
         addButton.addActionListener(e -> {
             String text = inputField.getText().trim();
@@ -129,7 +139,7 @@ public class WordGame {
                 inputField.setText("");
                 inputField.requestFocus();
             } else {
-                JOptionPane.showMessageDialog(null, "Input cannot be empty!", "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(null, "Полето не може да бъде празно!", "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
 
@@ -139,7 +149,7 @@ public class WordGame {
                 list.remove(listModel.get(selectedIndex));
                 listModel.remove(selectedIndex);
             } else {
-                JOptionPane.showMessageDialog(null, "Please select an item to delete.", "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(null, "Моля изберете нещо за изтриване.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
 
@@ -152,7 +162,7 @@ public class WordGame {
                 inputField.setText("");
                 inputField.requestFocus();
             } else {
-                JOptionPane.showMessageDialog(null, "Please select an item and provide valid input to update.", "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(null, "Моля изберете дума за обновяване.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
 
@@ -171,5 +181,27 @@ public class WordGame {
         panel.add(inputPanel, BorderLayout.SOUTH);
 
         return panel;
+    }
+
+    private static void saveData() {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(DATA_FILE))) {
+            oos.writeObject(RIVERS);
+            oos.writeObject(RESERVOIRS);
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(null, "Failed to save data: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void loadData() {
+        File file = new File(DATA_FILE);
+        if (file.exists()) {
+            try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
+                RIVERS.addAll((List<String>) ois.readObject());
+                RESERVOIRS.addAll((List<String>) ois.readObject());
+            } catch (IOException | ClassNotFoundException e) {
+                JOptionPane.showMessageDialog(null, "Failed to load data: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
 }
