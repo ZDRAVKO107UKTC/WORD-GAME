@@ -21,4 +21,9 @@
     <minVersion>1.8</minVersion>
     <maxVersion></maxVersion>
   </jre>
+    <dependency>
+      <groupId>org.json</groupId>
+      <artifactId>json</artifactId>
+      <version>20230618</version>
+    </dependency>
 </launch4jConfig>
