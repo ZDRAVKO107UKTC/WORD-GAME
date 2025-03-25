@@ -2,52 +2,68 @@ package wordgame;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class AdminWindow extends JFrame {
 
+    private final JTabbedPane tabbedPane;
+    private final Map<String, List<String>> categoriesMap;
+
     public AdminWindow(Map<String, List<String>> categoriesMap) {
-        setTitle("Администратор на игри с думи");
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-        setSize(600, 400);
+        this.categoriesMap = categoriesMap;
+
+        setTitle("Администриране на категории");
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setSize(400, 300);
         setLocationRelativeTo(null);
 
-        JTabbedPane tabbedPane = new JTabbedPane();
+        tabbedPane = new JTabbedPane();
 
-        // Създаване на табове за всяка категория
+        // Добавяне на всички категории като табове
         for (Map.Entry<String, List<String>> entry : categoriesMap.entrySet()) {
             tabbedPane.addTab(entry.getKey(), new CRUDPanel(entry.getKey(), entry.getValue()));
         }
 
-        // Бутон за добавяне на нова категория
-        JButton addCategoryButton = new JButton("Добави категория");
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+
+        JButton addCategoryButton = new JButton("Нова категория");
         addCategoryButton.addActionListener(e -> {
             String newCategory = JOptionPane.showInputDialog(this, "Въведете името на новата категория:");
             if (newCategory != null && !newCategory.trim().isEmpty() && !categoriesMap.containsKey(newCategory)) {
-                categoriesMap.put(newCategory, new ArrayList<>());
+                categoriesMap.put(newCategory, new java.util.ArrayList<>());
                 tabbedPane.addTab(newCategory, new CRUDPanel(newCategory, categoriesMap.get(newCategory)));
+                WordGame.updateCategoryButtons(); // Обновяване на бутоните в главния прозорец
             }
         });
 
-        JPanel topPanel = new JPanel();
-        topPanel.add(addCategoryButton);
+        JButton removeCategoryButton = new JButton("Премахване на категория");
+        removeCategoryButton.addActionListener(e -> {
+            int selectedIndex = tabbedPane.getSelectedIndex();
+            if (selectedIndex != -1) {
+                String categoryToRemove = tabbedPane.getTitleAt(selectedIndex);
+                int confirm = JOptionPane.showConfirmDialog(
+                        this,
+                        "Сигурни ли сте, че искате да премахнете категорията: " + categoryToRemove + "?",
+                        "Потвърждение",
+                        JOptionPane.YES_NO_OPTION
+                );
+                if (confirm == JOptionPane.YES_OPTION) {
+                    categoriesMap.remove(categoryToRemove); // Махаме категорията от данните
+                    tabbedPane.remove(selectedIndex);      // Махаме таба
+                    WordGame.updateCategoryButtons();      // Обновяване на бутоните в главния прозорец
+                }
+            } else {
+                JOptionPane.showMessageDialog(this, "Не е избрана категория за премахване.", "Грешка", JOptionPane.ERROR_MESSAGE);
+            }
+        });
 
-        add(topPanel, BorderLayout.NORTH);
-        add(tabbedPane, BorderLayout.CENTER);
+        buttonPanel.add(addCategoryButton);
+        buttonPanel.add(removeCategoryButton);
+
+        getContentPane().add(tabbedPane, BorderLayout.CENTER);
+        getContentPane().add(buttonPanel, BorderLayout.SOUTH);
 
         setVisible(true);
-
-        addCategoryButton.addActionListener(e -> {
-            String newCategory = JOptionPane.showInputDialog(this, "Въведете името на новата категория:");
-            if (newCategory != null && !newCategory.trim().isEmpty() && !categoriesMap.containsKey(newCategory)) {
-                categoriesMap.put(newCategory, new ArrayList<>());
-                tabbedPane.addTab(newCategory, new CRUDPanel(newCategory, categoriesMap.get(newCategory)));
-                WordGame.updateCategoryButtons(); // Извикване на обновяване в графичния интерфейс
-            }
-        });
     }
-
-
 }

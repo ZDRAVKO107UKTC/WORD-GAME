@@ -7,8 +7,10 @@ import java.util.List;
 public class CRUDPanel extends JPanel {
 
     private final DefaultListModel<String> listModel = new DefaultListModel<>();
+    private final List<String> words; // Съхраняваме препратката към списъка с думи
 
     public CRUDPanel(String category, List<String> words) {
+        this.words = words; // Запазваме референция към думите
         setLayout(new BorderLayout(10, 10));
 
         // Инициализиране на списъка с думи
@@ -69,5 +71,15 @@ public class CRUDPanel extends JPanel {
 
         add(scrollPane, BorderLayout.CENTER);
         add(buttonPanel, BorderLayout.SOUTH);
+    }
+
+    // --- Нов метод за добавяне на думи ---
+    public void addWords(List<String> newWords) {
+        for (String newWord : newWords) {
+            if (!words.contains(newWord)) { // Избягваме дублиране на думи
+                words.add(newWord);
+                listModel.addElement(newWord); // Обновяване на графичния списък в `JList`
+            }
+        }
     }
 }

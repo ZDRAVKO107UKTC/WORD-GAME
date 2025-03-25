@@ -15,7 +15,6 @@ public class WordGame {
     private static final Map<String, List<String>> categoriesMap = new HashMap<>();
     private static JPanel buttonPanel; // Панел за бутоните
     private static JLabel resultLabel;
-    private static JButton adminButton; // Дефинираме Admin бутона тук
 
     public static void createAndShowGUI() {
         loadData();
@@ -29,22 +28,20 @@ public class WordGame {
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
         mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        buttonPanel = new JPanel(new GridLayout(categoriesMap.size() + 3, 1, 10, 10));
+        buttonPanel = new JPanel(new GridLayout(0, 1, 10, 10));
 
-        // Създаване на Admin бутон
-        adminButton = new JButton("Админ");
-        adminButton.addActionListener(e -> new AdminWindow(categoriesMap));
-        buttonPanel.add(adminButton); // Добавяме го веднъж
-
-        updateCategoryButtons(); // Създаване на оригиналните бутони за категории
+        // Добавяне на бутоните за категориите + "Админ"
+        updateCategoryButtons();
 
         mainPanel.add(label, BorderLayout.NORTH);
         mainPanel.add(buttonPanel, BorderLayout.CENTER);
         mainPanel.add(resultLabel, BorderLayout.SOUTH);
 
+        // Listener за промяна на размера на прозореца
         frame.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
+                // Изчисляваме нов размер спрямо прозореца и компонентите
                 adjustFontSize(frame, label, resultLabel, buttonPanel.getComponents());
             }
         });
@@ -55,7 +52,7 @@ public class WordGame {
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
 
-        // Запазване на данни при затваряне
+        // Запазване на данните при затваряне на прозореца
         frame.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent windowEvent) {
@@ -65,49 +62,62 @@ public class WordGame {
     }
 
     public static void updateCategoryButtons() {
-        // Премахване на всички бутони, но без да пипаме Admin бутона
+        // Премахваме всички текущи бутони от панела
         buttonPanel.removeAll();
 
-        // Създаване на нови бутони за всички категории
+        // Създаваме нови бутони за всяка категория
         for (String category : categoriesMap.keySet()) {
             JButton categoryButton = new JButton(category);
             categoryButton.addActionListener(e -> showRandomWord(categoriesMap.get(category), category));
             buttonPanel.add(categoryButton);
         }
 
-        // Връщаме Admin бутона най-долу
+        // Добавяме "Админ" бутон накрая
+        JButton adminButton = new JButton("Админ");
+        adminButton.addActionListener(e -> new AdminWindow(categoriesMap));
         buttonPanel.add(adminButton);
 
-        buttonPanel.revalidate(); // Обновяване на панела
-        buttonPanel.repaint();   // Презачертаване на графиката
+        // Уверяваме се, че GUI-то е напълно нарисувано преди да извикаме adjustFontSize
+        SwingUtilities.invokeLater(() -> {
+        SwingUtilities.invokeLater(() -> {
+            adjustFontSize((JFrame) SwingUtilities.getWindowAncestor(buttonPanel), null, null, buttonPanel.getComponents());
+        });
+            adjustFontSize((JFrame) SwingUtilities.getWindowAncestor(buttonPanel), null, null, buttonPanel.getComponents());
+        });
+
+        // Презареждане на панела след добавяне на бутоните
+        buttonPanel.revalidate();
+        buttonPanel.repaint();
     }
 
-    private static void showRandomWord(List<String> words, String category) {
-        if (!words.isEmpty()) {
-            String randomWord = words.get(RANDOM.nextInt(words.size()));
-            resultLabel.setText("Получена дума от категория '" + category + "': " + randomWord);
-        } else {
-            resultLabel.setText("Няма налични думи в категория '" + category + "'.");
+    private static void adjustFontSize(JFrame frame, JLabel label, JLabel resultLabel, Component[] components) {
+        if (frame == null) {
+            return;
         }
-    }
+        int frameHeight = frame.getHeight();
+        int componentCount = components.length > 0 ? components.length : 1;
+        int newFontSize = Math.max(12, Math.min(frameHeight / (componentCount + 2), 18));
 
-    private static void adjustFontSize(JFrame frame, JLabel label, JLabel resultLabel, Component... components) {
-        int newFontSize = Math.min(frame.getWidth(), frame.getHeight()) / 20;
         Font baseFont = new Font("Arial", Font.PLAIN, newFontSize);
-        label.setFont(baseFont);
-        resultLabel.setFont(baseFont);
+
         for (Component component : components) {
             if (component instanceof JButton) {
                 component.setFont(baseFont);
             }
         }
+
+        if (label != null) label.setFont(baseFont);
+        if (resultLabel != null) resultLabel.setFont(baseFont);
+
+        buttonPanel.revalidate();
+        buttonPanel.repaint();
     }
 
     public static void saveData() {
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(DATA_FILE))) {
             oos.writeObject(categoriesMap);
         } catch (IOException e) {
-            showErrorDialog("Грешка при запазване на данни.", e);
+            showErrorDialog("Грешка при запазване на данните.", e);
         }
     }
 
@@ -123,7 +133,7 @@ public class WordGame {
                     initializeDefaultCategories();
                 }
             } catch (IOException | ClassNotFoundException e) {
-                showErrorDialog("Грешка при зареждане на данни.", e);
+                showErrorDialog("Грешка при зареждане на данните.", e);
                 initializeDefaultCategories();
             }
         } else {
@@ -138,5 +148,13 @@ public class WordGame {
 
     private static void showErrorDialog(String message, Exception e) {
         JOptionPane.showMessageDialog(null, message + "\n" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+    }
+    private static void showRandomWord(List<String> words, String category) {
+        if (!words.isEmpty()) {
+            String randomWord = words.get(RANDOM.nextInt(words.size()));
+            resultLabel.setText("Получена дума от категория '" + category + "': " + randomWord);
+        } else {
+            resultLabel.setText("Няма налични думи в категория '" + category + "'.");
+        }
     }
 }
