@@ -2,21 +2,20 @@ package wordgame;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.io.*;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
-import java.util.Random;
 
 public class WordGame {
 
     private static final String DATA_FILE = "wordgame_data.ser";
-    static final List<String> RIVERS = new ArrayList<>();
-    static final List<String> RESERVOIRS = new ArrayList<>();
-    static final List<String> CATEGORIES = new ArrayList<>();
     private static final Random RANDOM = new Random();
+    private static final Map<String, List<String>> categoriesMap = new HashMap<>();
+    private static JPanel buttonPanel; // Панел за бутоните
+    private static JLabel resultLabel;
+    private static JButton adminButton; // Дефинираме Admin бутона тук
 
     public static void createAndShowGUI() {
         loadData();
@@ -25,31 +24,19 @@ public class WordGame {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         JLabel label = new JLabel("Натиснете бутон за да получите дума:", SwingConstants.CENTER);
-        JLabel resultLabel = new JLabel("", SwingConstants.CENTER);
+        resultLabel = new JLabel("", SwingConstants.CENTER);
 
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
         mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        JPanel buttonPanel = new JPanel(new GridLayout(0, 1, 10, 10));
+        buttonPanel = new JPanel(new GridLayout(categoriesMap.size() + 3, 1, 10, 10));
 
-        JButton riverButton = new JButton("Река");
-        JButton reservoirButton = new JButton("Язовир");
-        JButton crudButton = new JButton("Админ");
+        // Създаване на Admin бутон
+        adminButton = new JButton("Админ");
+        adminButton.addActionListener(e -> new AdminWindow(categoriesMap));
+        buttonPanel.add(adminButton); // Добавяме го веднъж
 
-        buttonPanel.add(riverButton);
-        buttonPanel.add(reservoirButton);
-        buttonPanel.add(crudButton);
-
-        // Dynamically add category buttons
-        for (String category : CATEGORIES) {
-            JButton categoryButton = new JButton(category);
-            categoryButton.addActionListener(e -> showCategoryWords(resultLabel, category));
-            buttonPanel.add(categoryButton);
-        }
-
-        riverButton.addActionListener(e -> showRandomWord(resultLabel, RIVERS, "Река"));
-        reservoirButton.addActionListener(e -> showRandomWord(resultLabel, RESERVOIRS, "Язовир"));
-        crudButton.addActionListener(e -> new AdminWindow());
+        updateCategoryButtons(); // Създаване на оригиналните бутони за категории
 
         mainPanel.add(label, BorderLayout.NORTH);
         mainPanel.add(buttonPanel, BorderLayout.CENTER);
@@ -62,31 +49,46 @@ public class WordGame {
             }
         });
 
+        frame.add(mainPanel);
+        frame.setSize(600, 400);
+        frame.setMinimumSize(new Dimension(300, 200));
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
+
+        // Запазване на данни при затваряне
         frame.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent windowEvent) {
                 saveData();
             }
         });
-
-        frame.add(mainPanel);
-        frame.setSize(600, 400);
-        frame.setMinimumSize(new Dimension(300, 200));
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
     }
 
-    private static void showRandomWord(JLabel resultLabel, List<String> words, String type) {
+    public static void updateCategoryButtons() {
+        // Премахване на всички бутони, но без да пипаме Admin бутона
+        buttonPanel.removeAll();
+
+        // Създаване на нови бутони за всички категории
+        for (String category : categoriesMap.keySet()) {
+            JButton categoryButton = new JButton(category);
+            categoryButton.addActionListener(e -> showRandomWord(categoriesMap.get(category), category));
+            buttonPanel.add(categoryButton);
+        }
+
+        // Връщаме Admin бутона най-долу
+        buttonPanel.add(adminButton);
+
+        buttonPanel.revalidate(); // Обновяване на панела
+        buttonPanel.repaint();   // Презачертаване на графиката
+    }
+
+    private static void showRandomWord(List<String> words, String category) {
         if (!words.isEmpty()) {
             String randomWord = words.get(RANDOM.nextInt(words.size()));
-            resultLabel.setText("Получен(а) " + type + ": " + randomWord);
+            resultLabel.setText("Получена дума от категория '" + category + "': " + randomWord);
         } else {
-            resultLabel.setText("Няма налични думи. Моля добавете " + type.toLowerCase() + " през Админ Менюто.");
+            resultLabel.setText("Няма налични думи в категория '" + category + "'.");
         }
-    }
-
-    private static void showCategoryWords(JLabel resultLabel, String category) {
-        resultLabel.setText("Избрана категория: " + category);
     }
 
     private static void adjustFontSize(JFrame frame, JLabel label, JLabel resultLabel, Component... components) {
@@ -103,9 +105,7 @@ public class WordGame {
 
     public static void saveData() {
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(DATA_FILE))) {
-            oos.writeObject(RIVERS);
-            oos.writeObject(RESERVOIRS);
-            oos.writeObject(CATEGORIES);
+            oos.writeObject(categoriesMap);
         } catch (IOException e) {
             showErrorDialog("Грешка при запазване на данни.", e);
         }
@@ -116,13 +116,24 @@ public class WordGame {
         File file = new File(DATA_FILE);
         if (file.exists()) {
             try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
-                RIVERS.addAll((List<String>) ois.readObject());
-                RESERVOIRS.addAll((List<String>) ois.readObject());
-                CATEGORIES.addAll((List<String>) ois.readObject());
+                Object data = ois.readObject();
+                if (data instanceof Map) {
+                    categoriesMap.putAll((Map<String, List<String>>) data);
+                } else {
+                    initializeDefaultCategories();
+                }
             } catch (IOException | ClassNotFoundException e) {
                 showErrorDialog("Грешка при зареждане на данни.", e);
+                initializeDefaultCategories();
             }
+        } else {
+            initializeDefaultCategories();
         }
+    }
+
+    private static void initializeDefaultCategories() {
+        categoriesMap.put("Реки", new ArrayList<>());
+        categoriesMap.put("Язовири", new ArrayList<>());
     }
 
     private static void showErrorDialog(String message, Exception e) {
