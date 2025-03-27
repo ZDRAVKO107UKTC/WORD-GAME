@@ -1,5 +1,8 @@
 package wordgame;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
@@ -10,10 +13,11 @@ import java.util.List;
 
 public class WordGame {
 
-    private static final String DATA_FILE = "wordgame_data.ser";
+    private static final String DATA_FILE = "wordgame_data.json"; // JSON файл за данните
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create(); // Gson инстанция
     private static final Random RANDOM = new Random();
     private static final Map<String, List<String>> categoriesMap = new HashMap<>();
-    private static JPanel buttonPanel; // Панел за бутоните
+    private static JPanel buttonPanel;
     private static JLabel resultLabel;
 
     public static void createAndShowGUI() {
@@ -22,7 +26,7 @@ public class WordGame {
         JFrame frame = new JFrame("РЕКИ/ЯЗОВИРИ ИГРА");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        JLabel label = new JLabel("Натиснете бутон за да получите дума:", SwingConstants.CENTER);
+        JLabel label = new JLabel("Натиснете бутон, за да получите дума:", SwingConstants.CENTER);
         resultLabel = new JLabel("", SwingConstants.CENTER);
 
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
@@ -30,7 +34,7 @@ public class WordGame {
 
         buttonPanel = new JPanel(new GridLayout(0, 1, 10, 10));
 
-        // Добавяне на бутоните за категориите + "Админ"
+        // Добавяме бутоните за категориите + "Админ"
         updateCategoryButtons();
 
         mainPanel.add(label, BorderLayout.NORTH);
@@ -41,8 +45,7 @@ public class WordGame {
         frame.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
-                // Изчисляваме нов размер спрямо прозореца и компонентите
-                adjustFontSize(frame, label, resultLabel, buttonPanel.getComponents());
+                adjustFontSize(frame);
             }
         });
 
@@ -52,7 +55,7 @@ public class WordGame {
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
 
-        // Запазване на данните при затваряне на прозореца
+        // Запазваме данните при затваряне на прозореца
         frame.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent windowEvent) {
@@ -62,62 +65,48 @@ public class WordGame {
     }
 
     public static void updateCategoryButtons() {
-        // Премахваме всички текущи бутони от панела
         buttonPanel.removeAll();
 
-        // Създаваме нови бутони за всяка категория
+        // Създаваме бутони за всяка категория
         for (String category : categoriesMap.keySet()) {
             JButton categoryButton = new JButton(category);
             categoryButton.addActionListener(e -> showRandomWord(categoriesMap.get(category), category));
             buttonPanel.add(categoryButton);
         }
 
-        // Добавяме "Админ" бутон накрая
+        // Добавяме бутон "Админ" накрая
         JButton adminButton = new JButton("Админ");
         adminButton.addActionListener(e -> new AdminWindow(categoriesMap));
         buttonPanel.add(adminButton);
 
-        // Уверяваме се, че GUI-то е напълно нарисувано преди да извикаме adjustFontSize
-        SwingUtilities.invokeLater(() -> {
-        SwingUtilities.invokeLater(() -> {
-            adjustFontSize((JFrame) SwingUtilities.getWindowAncestor(buttonPanel), null, null, buttonPanel.getComponents());
-        });
-            adjustFontSize((JFrame) SwingUtilities.getWindowAncestor(buttonPanel), null, null, buttonPanel.getComponents());
-        });
-
-        // Презареждане на панела след добавяне на бутоните
         buttonPanel.revalidate();
         buttonPanel.repaint();
     }
 
-    private static void adjustFontSize(JFrame frame, JLabel label, JLabel resultLabel, Component[] components) {
-        if (frame == null) {
-            return;
-        }
+    private static void adjustFontSize(JFrame frame) {
         int frameHeight = frame.getHeight();
-        int componentCount = components.length > 0 ? components.length : 1;
+        int componentCount = buttonPanel.getComponents().length > 0 ? buttonPanel.getComponents().length : 1;
         int newFontSize = Math.max(12, Math.min(frameHeight / (componentCount + 2), 18));
 
         Font baseFont = new Font("Arial", Font.PLAIN, newFontSize);
 
-        for (Component component : components) {
+        for (Component component : buttonPanel.getComponents()) {
             if (component instanceof JButton) {
                 component.setFont(baseFont);
             }
         }
 
-        if (label != null) label.setFont(baseFont);
-        if (resultLabel != null) resultLabel.setFont(baseFont);
+        resultLabel.setFont(baseFont);
 
         buttonPanel.revalidate();
         buttonPanel.repaint();
     }
 
     public static void saveData() {
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(DATA_FILE))) {
-            oos.writeObject(categoriesMap);
+        try (Writer writer = new FileWriter(DATA_FILE)) {
+            GSON.toJson(categoriesMap, writer); // Записваме map като JSON
         } catch (IOException e) {
-            showErrorDialog("Грешка при запазване на данните.", e);
+            showErrorDialog("Грешка при запазване на данните в JSON файл.", e);
         }
     }
 
@@ -125,15 +114,15 @@ public class WordGame {
     public static void loadData() {
         File file = new File(DATA_FILE);
         if (file.exists()) {
-            try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
-                Object data = ois.readObject();
-                if (data instanceof Map) {
-                    categoriesMap.putAll((Map<String, List<String>>) data);
+            try (Reader reader = new FileReader(file)) {
+                Map<String, List<String>> data = GSON.fromJson(reader, categoriesMap.getClass());
+                if (data != null) {
+                    categoriesMap.putAll(data); // Зареждаме JSON данните
                 } else {
                     initializeDefaultCategories();
                 }
-            } catch (IOException | ClassNotFoundException e) {
-                showErrorDialog("Грешка при зареждане на данните.", e);
+            } catch (IOException e) {
+                showErrorDialog("Грешка при зареждане на данните от JSON файл.", e);
                 initializeDefaultCategories();
             }
         } else {
@@ -146,9 +135,6 @@ public class WordGame {
         categoriesMap.put("Язовири", new ArrayList<>());
     }
 
-    private static void showErrorDialog(String message, Exception e) {
-        JOptionPane.showMessageDialog(null, message + "\n" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-    }
     private static void showRandomWord(List<String> words, String category) {
         if (!words.isEmpty()) {
             String randomWord = words.get(RANDOM.nextInt(words.size()));
@@ -156,5 +142,13 @@ public class WordGame {
         } else {
             resultLabel.setText("Няма налични думи в категория '" + category + "'.");
         }
+    }
+
+    private static void showErrorDialog(String message, Exception e) {
+        JOptionPane.showMessageDialog(null, message + "\n" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(WordGame::createAndShowGUI);
     }
 }

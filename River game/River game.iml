@@ -8,5 +8,10 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="org.json-1.6-20240205" level="project" />
+    <orderEntry type="library" name="gson-2.12.1" level="project" />
+    <orderEntry type="library" name="java" level="project" />
+    <orderEntry type="library" name="org.apache.poi.xwpf.converter.core-1.0.6" level="project" />
+    <orderEntry type="library" name="poi-ooxml-full-5.0.0" level="project" />
+    <orderEntry type="library" name="poi-ooxml-schemas-4.1.2" level="project" />
   </component>
 </module>
